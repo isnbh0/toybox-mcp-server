@@ -1,0 +1,48 @@
+# Source files
+src/
+*.ts
+!dist/**/*.d.ts
+
+# Test files
+test-*.js
+__tests__/
+*.test.*
+*.spec.*
+
+# Development files
+scripts/
+.vscode/
+.idea/
+
+# Template files (now fetched from GitHub)
+template/
+template.zip
+
+# Configuration files
+tsconfig.json
+.eslintrc*
+.prettierrc*
+
+# Documentation (except README)
+*.md
+!README.md
+!LICENSE
+
+# Git files
+.git/
+.gitignore
+.github/
+
+# Logs and temp files
+*.log
+npm-debug.log*
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+*.tsbuildinfo
