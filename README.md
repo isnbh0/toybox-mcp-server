@@ -2,6 +2,10 @@
 
 Zero-friction publishing platform for Claude artifacts via Model Context Protocol (MCP).
 
+<a href="https://glama.ai/mcp/servers/@isnbh0/toybox-mcp-server">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@isnbh0/toybox-mcp-server/badge" alt="TOYBOX Server MCP server" />
+</a>
+
 ## Overview
 
 TOYBOX MCP Server enables Claude Desktop users to publish their artifacts to a personal GitHub Pages portfolio site through simple conversational commands. No technical knowledge required!
