@@ -1,0 +1,59 @@
+{
+  "name": "@isnbh0/toybox-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for TOYBOX - Zero-friction publishing platform for Claude artifacts",
+  "keywords": [
+    "[\"mcp\"",
+    "\"claude\"",
+    "\"artifacts\"",
+    "\"github-pages\"",
+    "\"publishing\"",
+    "\"portfolio\"]"
+  ],
+  "homepage": "https://github.com/isnbh0/toybox-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/isnbh0/toybox-mcp-server/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isnbh0/toybox-mcp-server.git"
+  },
+  "license": "MIT",
+  "author": "John Choi",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "toybox-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rm -rf dist && tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.2",
+    "@types/proper-lockfile": "^4.1.4",
+    "@types/uuid": "^10.0.0",
+    "commander": "^14.0.0",
+    "execa": "^9.6.0",
+    "fs-extra": "^11.3.0",
+    "glob": "^11.0.3",
+    "inquirer": "^12.6.3",
+    "proper-lockfile": "^4.1.2",
+    "semver": "^7.7.2",
+    "uuid": "^11.1.0",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.8",
+    "@types/node": "^24.0.7",
+    "@types/semver": "^7.7.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
