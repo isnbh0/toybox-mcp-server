@@ -34,7 +34,6 @@ export const InitializeToyboxParamsSchema = z.object({
   templateRepo: z.string().default('toybox'),
   config: ToyboxConfigSchema.optional(),
   debug: z.boolean().optional().default(process.env.TOYBOX_DEBUG === 'true'),
-  localTemplatePath: z.string().optional(),
   createRemote: z.boolean().optional().default(true),
   isPrivate: z.boolean().optional().default(false),
 });

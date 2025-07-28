@@ -23,9 +23,7 @@ TOYBOX MCP Server enables Claude Desktop users to publish their artifacts to a p
 
 ## Installation
 
-```bash
-npm install -g @toybox/mcp-server
-```
+No installation required! TOYBOX uses npx for zero-friction setup.
 
 ## Configuration
 
@@ -38,7 +36,21 @@ Add to your Claude Desktop configuration file:
 {
   "mcpServers": {
     "toybox": {
-      "command": "toybox-mcp"
+      "command": "npx",
+      "args": ["@isnbh0/toybox-mcp-server@latest"]
+    }
+  }
+}
+```
+
+For production use, pin to a specific version:
+
+```json
+{
+  "mcpServers": {
+    "toybox": {
+      "command": "npx",
+      "args": ["@isnbh0/toybox-mcp-server@1.0.0"]
     }
   }
 }

@@ -4,7 +4,6 @@ import { GitHubService } from '../services/github.js';
 import { GitService } from '../services/git.js';
 import { ArtifactService } from '../services/artifacts.js';
 import { ConfigService } from '../services/config.js';
-import { copyLocalTemplate, getDefaultTemplatePath, validateTemplate } from '../utils/copyTemplate.js';
 import { log } from '../utils/logger.js';
 import type { InitializeToyboxParams, InitResult, ToyboxRepository } from '../types.js';
 
@@ -12,7 +11,7 @@ import type { InitializeToyboxParams, InitResult, ToyboxRepository } from '../ty
  * Initialize a new TOYBOX repository with GitHub Pages publishing
  */
 export async function initializeToybox(params: InitializeToyboxParams): Promise<InitResult> {
-  const { repoName, templateOwner, templateRepo, config, debug, localTemplatePath, createRemote, isPrivate } = params;
+  const { repoName, templateOwner, templateRepo, config, debug, createRemote, isPrivate } = params;
   const githubService = new GitHubService();
   const configService = new ConfigService();
 
@@ -26,8 +25,6 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
   });
 
   try {
-    // Separate concerns: template source vs remote setup
-    const useLocalTemplate = debug || !!localTemplatePath;
     const needsGitHubRemote = createRemote;
     let currentUser: string = 'debug-user';
     
@@ -83,39 +80,7 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
     let pagesUrl: string = '';
     let cloneUrl: string = '';
     
-    if (useLocalTemplate) {
-      // Use local template mode
-      log.info('Using local template mode');
-      
-      // Determine template path
-      const templatePath = localTemplatePath || process.env.TOYBOX_LOCAL_TEMPLATE_PATH || getDefaultTemplatePath();
-      log.info('Using template from path', { templatePath });
-      
-      // Validate template
-      const isValid = await validateTemplate(templatePath);
-      if (!isValid) {
-        return {
-          success: false,
-          repository: {} as ToyboxRepository,
-          error: `Invalid template directory: ${templatePath}. Missing required files.`,
-        };
-      }
-      
-      // Copy template to local path with replacements
-      const replacements = {
-        'YOUR_GITHUB_USERNAME': currentUser,
-        'YOUR_REPO_NAME': repoName,
-      };
-      await copyLocalTemplate(templatePath, localPath, replacements);
-      
-      // Initialize git repository
-      await gitService.initRepository();
-      
-      // Set URLs for local mode (empty repoUrl will trigger GitHub remote creation if needed)
-      repoUrl = needsGitHubRemote ? '' : `file://${localPath}`;
-      pagesUrl = debug ? `http://localhost:5173/` : '';
-      
-    } else if (!needsGitHubRemote) {
+    if (!needsGitHubRemote) {
       // Clone from GitHub template without creating a new repository
       log.info('Cloning from TOYBOX template', { templateOwner, templateRepo });
       const templateUrl = `https://github.com/${templateOwner}/${templateRepo}.git`;
@@ -133,7 +98,7 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
       
       // Set URLs for local mode
       repoUrl = `file://${localPath}`;
-      pagesUrl = '';
+      pagesUrl = debug ? `http://localhost:5173/` : '';
       
     } else {
       // Full GitHub integration mode: Create from GitHub template

@@ -1,6 +1,6 @@
-# Claude Desktop Setup for TOYBOX Debug Mode
+# Claude Desktop Setup for TOYBOX MCP Server
 
-This guide shows how to configure Claude Desktop to run the TOYBOX MCP Server in debug mode by default.
+This guide shows how to configure Claude Desktop to run the TOYBOX MCP Server using npx.
 
 ## Configuration
 
@@ -11,31 +11,42 @@ The configuration file is located at:
 ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
 
-### 2. Add Environment Variables
+### 2. Add TOYBOX MCP Server Configuration
 
-Update your `claude_desktop_config.json` to include environment variables for the TOYBOX MCP server:
+Update your `claude_desktop_config.json` to include the TOYBOX MCP server using npx:
 
 ```json
 {
   "mcpServers": {
     "toybox": {
-      "command": "node",
-      "args": ["/path/to/your/toybox/toybox-mcp-server/dist/index.js"],
-      "env": {
-        "TOYBOX_DEBUG": "true",
-        "TOYBOX_LOCAL_TEMPLATE_PATH": "/path/to/your/toybox/toybox-mcp-server/template"
-      }
+      "command": "npx",
+      "args": ["@isnbh0/toybox-mcp-server@latest"]
     }
   }
 }
 ```
 
-### 3. Environment Variables
+### 3. Optional Environment Variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `TOYBOX_DEBUG` | Enable debug mode (`"true"` or `"false"`) | `"true"` |
-| `TOYBOX_LOCAL_TEMPLATE_PATH` | Path to local template directory | `"/Users/jhchoi/local/src/toybox/toybox-mcp-server/template"` |
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `TOYBOX_DEBUG` | Enable debug mode for local development | `"false"` | `"true"` |
+
+To enable debug mode, add it to the configuration:
+
+```json
+{
+  "mcpServers": {
+    "toybox": {
+      "command": "npx",
+      "args": ["@isnbh0/toybox-mcp-server@latest"],
+      "env": {
+        "TOYBOX_DEBUG": "true"
+      }
+    }
+  }
+}
+```
 
 ## Complete Example Configuration
 
@@ -54,12 +65,8 @@ Here's a complete example of `claude_desktop_config.json`:
       ]
     },
     "toybox": {
-      "command": "node",
-      "args": ["/Users/jhchoi/local/src/toybox/toybox-mcp-server/dist/index.js"],
-      "env": {
-        "TOYBOX_DEBUG": "true",
-        "TOYBOX_LOCAL_TEMPLATE_PATH": "/Users/jhchoi/local/src/toybox/toybox-mcp-server/template"
-      }
+      "command": "npx",
+      "args": ["@isnbh0/toybox-mcp-server@latest"]
     }
   },
   "globalShortcut": ""
@@ -68,69 +75,72 @@ Here's a complete example of `claude_desktop_config.json`:
 
 ## Setup Steps
 
-### 1. Build the MCP Server
-```bash
-cd /path/to/your/toybox/toybox-mcp-server
-npm run build
-```
-
-### 2. Setup the Template Directory
-```bash
-cd /path/to/your/toybox
-./toybox-mcp-server/scripts/setup-template.sh
-```
-
-### 3. Update Claude Desktop Config
+### 1. Update Claude Desktop Config
 Edit `~/Library/Application\ Support/Claude/claude_desktop_config.json` with the configuration above.
 
-### 4. Restart Claude Desktop
+### 2. Restart Claude Desktop
 Close and reopen Claude Desktop for the changes to take effect.
+
+### 3. Test the Installation
+The first time you use TOYBOX, npx will automatically download and install the latest version.
 
 ## How It Works
 
-With debug mode enabled:
-
-1. **Environment Variables**: The MCP server reads `TOYBOX_DEBUG` and `TOYBOX_LOCAL_TEMPLATE_PATH` on startup
-2. **Default Behavior**: All `initialize_toybox` calls will use debug mode by default
-3. **No GitHub Required**: No need for GitHub authentication or internet connection
-4. **Local Templates**: Uses your local template files instead of cloning from GitHub
+1. **NPX Installation**: When Claude Desktop starts, npx will download and cache the TOYBOX MCP server
+2. **Template Fetching**: Templates are fetched from GitHub (https://github.com/isnbh0/toybox)
+3. **GitHub Integration**: Requires GitHub CLI (`gh`) for creating repositories and enabling Pages
+4. **Debug Mode**: When enabled, creates local repositories without GitHub integration
 
 ## Usage
 
 Once configured, you can simply say:
 
 ```
-"Create a new TOYBOX called 'my-test-box'"
+"Create a new TOYBOX called 'my-portfolio'"
 ```
 
 And Claude will automatically:
-- Use debug mode (no GitHub operations)
-- Copy from your local template
-- Create the repository in `~/my-test-box/`
-- Initialize it for local development
+- Clone the template from GitHub
+- Create a GitHub repository (if createRemote: true)
+- Set up GitHub Pages for publishing
+- Initialize it for artifact publishing
 
-## Override Debug Mode
+## Version Pinning
 
-You can still override debug mode for specific calls:
+For production use, consider pinning to a specific version:
 
-```javascript
-initialize_toybox({
-  repoName: "production-toybox",
-  templateOwner: "your-github-username",
-  debug: false  // This will override the environment variable
-})
+```json
+{
+  "mcpServers": {
+    "toybox": {
+      "command": "npx",
+      "args": ["@isnbh0/toybox-mcp-server@1.0.0"]
+    }
+  }
+}
 ```
 
 ## Troubleshooting
 
 ### MCP Server Not Starting
-- Check that the path in `args` points to your built MCP server
-- Ensure you've run `npm run build` in the MCP server directory
+- Ensure you have Node.js installed (version 18 or later)
+- Check your internet connection (npx needs to download the package)
+- Try clearing npx cache: `npx --yes @isnbh0/toybox-mcp-server@latest`
 
-### Template Errors
-- Run the setup script: `./toybox-mcp-server/scripts/setup-template.sh`
-- Check that the template path in `TOYBOX_LOCAL_TEMPLATE_PATH` exists
+### Template Download Fails
+- Check your internet connection
+- Verify GitHub is accessible from your network
+- Try using debug mode for local development without GitHub
+
+### GitHub Authentication Issues
+- Install GitHub CLI: `brew install gh` (macOS) or visit https://cli.github.com/
+- Authenticate: `gh auth login`
+- Check authentication: `gh auth status`
+
+### NPX Cache Issues
+- Clear cache: `npm cache clean --force`
+- Use specific version: `npx @isnbh0/toybox-mcp-server@latest`
 
 ### Changes Not Taking Effect
 - Restart Claude Desktop completely
-- Check the MCP server logs for any errors
+- Check that the configuration file syntax is valid JSON
