@@ -11,8 +11,8 @@ class MCPTestClient extends EventEmitter {
     this.pendingRequests = new Map();
   }
 
-  async start() {
-    console.log('🚀 Starting MCP server...');
+  async start(useNpx = false) {
+    console.log(`🚀 Starting MCP server ${useNpx ? 'via npx' : 'locally'}...`);
     
     // Set environment variables for the server process
     const env = {
@@ -21,7 +21,10 @@ class MCPTestClient extends EventEmitter {
       TOYBOX_LOG_LEVEL: 'debug'
     };
     
-    this.server = spawn('node', ['dist/index.js'], {
+    const command = useNpx ? 'npx' : 'node';
+    const args = useNpx ? ['@isnbh0/toybox-mcp-server@latest'] : ['dist/index.js'];
+    
+    this.server = spawn(command, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       env
     });
@@ -100,7 +103,7 @@ class MCPTestClient extends EventEmitter {
   async initialize() {
     console.log('\n🔌 Initializing MCP connection...');
     return await this.sendRequest('initialize', {
-      protocolVersion: '2024-11-05',
+      protocolVersion: '2025-06-18',
       capabilities: {},
       clientInfo: {
         name: 'test-client',
@@ -112,6 +115,16 @@ class MCPTestClient extends EventEmitter {
   async listTools() {
     console.log('\n🛠️ Listing available tools...');
     return await this.sendRequest('tools/list');
+  }
+
+  async listResources() {
+    console.log('\n📚 Listing available resources...');
+    return await this.sendRequest('resources/list');
+  }
+
+  async listPrompts() {
+    console.log('\n💬 Listing available prompts...');
+    return await this.sendRequest('prompts/list');
   }
 
   async callTool(name, arguments_) {
@@ -140,11 +153,12 @@ class MCPTestClient extends EventEmitter {
 }
 
 async function runTests() {
+  const useNpx = process.argv.includes('--npx');
   const client = new MCPTestClient();
   
   try {
     // Start the server
-    await client.start();
+    await client.start(useNpx);
     
     // Initialize the connection
     const initResult = await client.initialize();
@@ -153,6 +167,22 @@ async function runTests() {
     // List available tools
     const tools = await client.listTools();
     console.log('✅ Available tools:', tools.tools.map(t => t.name));
+    
+    // Test resources/list (this is causing errors)
+    try {
+      const resources = await client.listResources();
+      console.log('✅ Available resources:', resources);
+    } catch (error) {
+      console.log('⚠️ resources/list error:', error.message);
+    }
+    
+    // Test prompts/list (this is also causing errors)
+    try {
+      const prompts = await client.listPrompts();
+      console.log('✅ Available prompts:', prompts);
+    } catch (error) {
+      console.log('⚠️ prompts/list error:', error.message);
+    }
     
     // Test GitHub authentication by trying to initialize a toybox
     console.log('\n🧪 Testing TOYBOX initialization (this will test GitHub auth)...');

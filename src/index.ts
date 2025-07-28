@@ -6,6 +6,8 @@ import {
   CallToolRequestSchema,
   ErrorCode,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ListPromptsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { log } from './utils/logger.js';
@@ -34,18 +36,24 @@ class ToyboxMCPServer {
   constructor() {
     log.info('Initializing TOYBOX MCP Server', { 
       logFile: log.getLogFilePath(),
-      version: '1.0.0',
+      version: '1.0.2',
       debugMode: log.isEnabled()
     });
     
     this.server = new Server(
       {
         name: 'toybox-mcp-server',
-        version: '1.0.0',
+        version: '1.0.2',
       },
       {
         capabilities: {
           tools: {
+            listChanged: false
+          },
+          resources: {
+            listChanged: false
+          },
+          prompts: {
             listChanged: false
           }
         }
@@ -53,6 +61,8 @@ class ToyboxMCPServer {
     );
 
     this.setupToolHandlers();
+    this.setupResourceHandlers();
+    this.setupPromptHandlers();
     this.setupErrorHandling();
   }
 
@@ -359,6 +369,20 @@ class ToyboxMCPServer {
     });
   }
 
+  private setupResourceHandlers(): void {
+    // Resources are not used in this server, but we need to handle the request
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+      resources: []
+    }));
+  }
+
+  private setupPromptHandlers(): void {
+    // Prompts are not used in this server, but we need to handle the request
+    this.server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+      prompts: []
+    }));
+  }
+
   private setupErrorHandling(): void {
     this.server.onerror = (error) => {
       log.error('MCP Server error', { error });
@@ -380,11 +404,10 @@ class ToyboxMCPServer {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const server = new ToyboxMCPServer();
-  server.run().catch((error) => {
-    log.error('Failed to start server', { error });
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  });
-}
+// Always start the server when this module is executed
+const server = new ToyboxMCPServer();
+server.run().catch((error) => {
+  log.error('Failed to start server', { error });
+  console.error('Failed to start server:', error);
+  process.exit(1);
+});
