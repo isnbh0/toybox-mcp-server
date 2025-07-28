@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "toybox": {
+      "command": "node",
+      "args": [
+        "/Users/jhchoi/local/src/toybox-mcp-server/dist/index.js"
+      ],
+      "env": {
+        "TOYBOX_DEBUG": "true",
+        "TOYBOX_LOCAL_TEMPLATE_PATH": "/Users/jhchoi/local/src/toybox-mcp-server/template"
+      }
+    }
+  }
+}
