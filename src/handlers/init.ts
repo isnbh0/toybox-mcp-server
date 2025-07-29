@@ -19,16 +19,37 @@ async function customizeTemplate(
 ): Promise<void> {
   log.info('Customizing template for user', { username, repoName, localPath });
   
-  // 1. Create github.config.json with actual values
+  // 1. Update github.config.json with actual values while preserving structure
   const githubConfigPath = path.join(localPath, 'github.config.json');
-  const githubConfig = {
-    username,
-    repository: repoName,
-    description: `Configuration for ${username}'s TOYBOX deployment`
-  };
+  
+  // Read the existing template config to preserve structure
+  let githubConfig;
+  try {
+    const existingConfig = await fs.readFile(githubConfigPath, 'utf-8');
+    githubConfig = JSON.parse(existingConfig);
+    
+    // Update only the user-specific fields
+    githubConfig.username = username;
+    githubConfig.repository = repoName;
+    githubConfig.description = `Configuration for ${username}'s TOYBOX deployment`;
+  } catch (error) {
+    // Fallback to basic structure if template config doesn't exist
+    log.warn('Could not read existing github.config.json, using fallback structure', { error });
+    githubConfig = {
+      username,
+      repository: repoName,
+      description: `Configuration for ${username}'s TOYBOX deployment`,
+      customization: {
+        siteName: "TOYBOX",
+        siteDescription: `A collection of ${username}'s Claude-generated artifacts`,
+        showGitHubLink: true,
+        defaultTheme: "auto"
+      }
+    };
+  }
   
   await fs.writeFile(githubConfigPath, JSON.stringify(githubConfig, null, 2) + '\n');
-  log.info('Created github.config.json', { githubConfig });
+  log.info('Updated github.config.json with user values', { githubConfig });
   
   // 2. Install npm dependencies (required for update script)
   log.info('Installing npm dependencies for template configuration...');
@@ -113,7 +134,7 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
   log.info('Starting TOYBOX initialization', { 
     repoName,
     templateOwner, 
-    templateRepo, 
+    templateRepo,
     debug, 
     createRemote, 
     isPrivate 

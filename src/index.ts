@@ -11,6 +11,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { log } from './utils/logger.js';
+import { DEFAULTS, DESCRIPTIONS } from './constants.js';
 import { initializeToybox } from './handlers/init.js';
 import { publishArtifact } from './handlers/publish.js';
 import { listArtifacts } from './handlers/list.js';
@@ -36,14 +37,14 @@ class ToyboxMCPServer {
   constructor() {
     log.info('Initializing TOYBOX MCP Server', { 
       logFile: log.getLogFilePath(),
-      version: '1.0.2',
+      version: DEFAULTS.VERSION,
       debugMode: log.isEnabled()
     });
     
     this.server = new Server(
       {
-        name: 'toybox-mcp-server',
-        version: '1.0.2',
+        name: DEFAULTS.SERVER_NAME,
+        version: DEFAULTS.VERSION,
       },
       {
         capabilities: {
@@ -77,18 +78,18 @@ class ToyboxMCPServer {
             properties: {
               repoName: {
                 type: 'string',
-                description: 'Name for the repository (default: toybox)',
-                default: 'toybox',
+                description: DESCRIPTIONS.REPO_NAME,
+                default: DEFAULTS.USER_REPO_NAME,
               },
               templateOwner: {
                 type: 'string',
-                description: 'GitHub username or organization that owns the TOYBOX template (default: isnbh0)',
-                default: 'isnbh0',
+                description: DESCRIPTIONS.TEMPLATE_OWNER,
+                default: DEFAULTS.TEMPLATE_OWNER,
               },
               templateRepo: {
                 type: 'string',
-                description: 'Name of the template repository (default: toybox)',
-                default: 'toybox',
+                description: DESCRIPTIONS.TEMPLATE_REPO,
+                default: DEFAULTS.TEMPLATE_REPO,
               },
               config: {
                 type: 'object',

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULTS } from '../constants.js';
 
 /**
  * Schema for individual TOYBOX repository configuration
@@ -27,9 +28,9 @@ export const ToyboxConfigSchema = z.object({
   localTemplatePath: z.string().optional(),
   lastUpdated: z.string(), // ISO date string
   preferences: z.object({
-    defaultRepoName: z.string().default('toybox'),
-    autoCommit: z.boolean().default(true),
-    commitMessage: z.string().default('feat: Add new artifact via TOYBOX'),
+    defaultRepoName: z.string().default(DEFAULTS.USER_REPO_NAME),
+    autoCommit: z.boolean().default(DEFAULTS.CONFIG.AUTO_COMMIT),
+    commitMessage: z.string().default(DEFAULTS.CONFIG.COMMIT_MESSAGE),
   }).default({}),
 });
 
@@ -46,9 +47,9 @@ export function createDefaultConfig(): ToyboxConfig {
     localTemplatePath: process.env.TOYBOX_LOCAL_TEMPLATE_PATH,
     lastUpdated: new Date().toISOString(),
     preferences: {
-      defaultRepoName: 'toybox',
-      autoCommit: true,
-      commitMessage: 'feat: Add new artifact via TOYBOX',
+      defaultRepoName: DEFAULTS.USER_REPO_NAME,
+      autoCommit: DEFAULTS.CONFIG.AUTO_COMMIT,
+      commitMessage: DEFAULTS.CONFIG.COMMIT_MESSAGE,
     },
   };
 }

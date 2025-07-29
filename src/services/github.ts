@@ -3,6 +3,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import * as os from 'os';
 import { log } from '../utils/logger.js';
+import { DEFAULTS } from '../constants.js';
 import type { GitHubAuthStatus } from '../types.js';
 
 /**
@@ -207,7 +208,7 @@ export class GitHubService {
   /**
    * Create a new repository from the TOYBOX template
    */
-  async createRepository(repoName: string, templateOwner: string, templateRepo: string = 'toybox'): Promise<string> {
+  async createRepository(repoName: string, templateOwner: string, templateRepo: string = DEFAULTS.TEMPLATE_REPO): Promise<string> {
     log.info('Starting repository creation', {
       repoName,
       templateOwner,
@@ -407,9 +408,9 @@ export class GitHubService {
         'repo', 'view', repoName,
         '--json', 'url,sshUrl'
       ]);
-      
+
       const repoData = JSON.parse(stdout);
-      
+
       // Try to get Pages URL
       let pagesUrl: string | undefined;
       try {

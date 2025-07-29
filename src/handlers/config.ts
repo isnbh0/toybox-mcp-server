@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { GitService } from '../services/git.js';
 import { ArtifactService } from '../services/artifacts.js';
 import { log } from '../utils/logger.js';
+import { DEFAULTS } from '../constants.js';
 import type { ToyboxConfig } from '../types.js';
 
 export interface UpdateConfigResult {
@@ -149,15 +150,15 @@ export async function getConfig(): Promise<UpdateConfigResult> {
  * Find the local TOYBOX repository
  */
 async function findToyboxRepository(): Promise<string | null> {
-  const toyboxDir = path.join(os.homedir(), '.toybox');
+  const toyboxDir = path.join(os.homedir(), DEFAULTS.TOYBOX_DIR);
   
   // First check for any repositories in ~/.toybox
   const commonPaths = [
-    path.join(toyboxDir, 'toybox'),
+    path.join(toyboxDir, DEFAULTS.USER_REPO_NAME),
     path.join(toyboxDir, 'TOYBOX'),
     ...getDirectoriesInToybox(toyboxDir),
     // Legacy paths for backward compatibility
-    path.join(os.homedir(), 'toybox'),
+    path.join(os.homedir(), DEFAULTS.USER_REPO_NAME),
     path.join(os.homedir(), 'TOYBOX'),
   ];
 

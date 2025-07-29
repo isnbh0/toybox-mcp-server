@@ -1,4 +1,5 @@
 import { execa } from 'execa';
+import { DEFAULTS } from '../constants.js';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as os from 'os';
@@ -18,7 +19,7 @@ export class GitService {
    * Get the default repository path in user's home directory
    */
   private getDefaultRepoPath(): string {
-    return path.join(os.homedir(), 'toybox');
+    return path.join(os.homedir(), DEFAULTS.TOYBOX_DIR);
   }
 
   /**

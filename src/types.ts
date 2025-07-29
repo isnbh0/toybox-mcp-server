@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULTS } from './constants.js';
 
 // Artifact metadata schema matching the template repository
 export const ArtifactMetadataSchema = z.object({
@@ -29,9 +30,9 @@ export type ToyboxConfig = z.infer<typeof ToyboxConfigSchema>;
 
 // MCP function parameters
 export const InitializeToyboxParamsSchema = z.object({
-  repoName: z.string().default('toybox'),
-  templateOwner: z.string().default('isnbh0'),
-  templateRepo: z.string().default('toybox'),
+  repoName: z.string().default(DEFAULTS.USER_REPO_NAME),
+  templateOwner: z.string().default(DEFAULTS.TEMPLATE_OWNER),
+  templateRepo: z.string().default(DEFAULTS.TEMPLATE_REPO),
   config: ToyboxConfigSchema.optional(),
   debug: z.boolean().optional().default(process.env.TOYBOX_DEBUG === 'true'),
   createRemote: z.boolean().optional().default(true),
