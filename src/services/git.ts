@@ -200,14 +200,45 @@ export class GitService {
   }
 
   /**
-   * Create and checkout a new branch
+   * Check if a branch exists (locally)
+   */
+  async branchExists(branchName: string): Promise<boolean> {
+    try {
+      await this.execGit(['show-ref', '--verify', '--quiet', `refs/heads/${branchName}`]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Create and checkout a new branch, or checkout if it already exists
    */
   async createBranch(branchName: string): Promise<void> {
     try {
-      await this.execGit(['checkout', '-b', branchName]);
+      // Check if we're already on the target branch
+      try {
+        const currentBranch = await this.getCurrentBranch();
+        if (currentBranch === branchName) {
+          // Already on the target branch, nothing to do
+          return;
+        }
+      } catch {
+        // No current branch (fresh repo), continue
+      }
+      
+      // Check if branch exists and checkout accordingly
+      const exists = await this.branchExists(branchName);
+      if (exists) {
+        // Branch exists, just checkout
+        await this.execGit(['checkout', branchName]);
+      } else {
+        // Branch doesn't exist, create it
+        await this.execGit(['checkout', '-b', branchName]);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to create branch: ${errorMessage}`);
+      throw new Error(`Failed to create/checkout branch: ${errorMessage}`);
     }
   }
 
