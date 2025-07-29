@@ -1,5 +1,5 @@
 import { execa } from 'execa';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import * as os from 'os';
 import { log } from '../utils/logger.js';
@@ -53,7 +53,58 @@ export class GitHubService {
    */
   private async execGh(args: string[], options: Record<string, any> = {}) {
     const env = this.getGitHubEnv();
-    return await execa('gh', args, { env, ...options });
+    
+    // Default to ~/.toybox directory if no cwd is specified
+    const toyboxDir = join(env.HOME, '.toybox');
+    
+    // Ensure ~/.toybox directory exists
+    if (!existsSync(toyboxDir)) {
+      log.info('Creating ~/.toybox directory', { path: toyboxDir });
+      mkdirSync(toyboxDir, { recursive: true });
+    }
+    
+    const execOptions = {
+      env,
+      cwd: toyboxDir,  // Use ~/.toybox as working directory
+      ...options
+    };
+    
+    log.debug('Executing gh command', {
+      args,
+      options: execOptions,
+      env: {
+        HOME: env.HOME,
+        PATH: (env as any).PATH?.split(':').slice(0, 3).join(':') + '...', // Show first 3 PATH entries
+        GH_TOKEN: (env as any).GH_TOKEN ? '[REDACTED]' : undefined,
+        GITHUB_TOKEN: (env as any).GITHUB_TOKEN ? '[REDACTED]' : undefined
+      },
+      cwd: execOptions.cwd
+    });
+    
+    try {
+      const result = await execa('gh', args, execOptions);
+      
+      log.debug('gh command succeeded', {
+        args: args.join(' '),
+        stdoutLength: result.stdout?.length || 0,
+        stderrLength: result.stderr?.length || 0,
+        exitCode: result.exitCode
+      });
+      
+      return result;
+    } catch (error) {
+      log.error('gh command failed', {
+        args: args.join(' '),
+        error: error instanceof Error ? error.message : String(error),
+        stdout: (error as any)?.stdout,
+        stderr: (error as any)?.stderr,
+        exitCode: (error as any)?.exitCode,
+        command: (error as any)?.command,
+        cwd: execOptions.cwd
+      });
+      
+      throw error;
+    }
   }
 
   /**
@@ -111,7 +162,7 @@ export class GitHubService {
       // Parse the output to get user info
       const userMatch = outputText.match(/Logged in to github\.com as ([^\s]+)/);
       const scopeMatch = outputText.match(/Token scopes: (.+)/);
-      
+
       log.debug('Regex matches', { 
         userMatch: userMatch ? userMatch[0] : null,
         user: userMatch?.[1],
@@ -157,22 +208,85 @@ export class GitHubService {
    * Create a new repository from the TOYBOX template
    */
   async createRepository(repoName: string, templateOwner: string, templateRepo: string = 'toybox'): Promise<string> {
+    log.info('Starting repository creation', {
+      repoName,
+      templateOwner,
+      templateRepo,
+      template: `${templateOwner}/${templateRepo}`
+    });
+
     try {
-      // Create repository from template
-      await this.execGh([
+      // Log the exact command we're about to run
+      const createArgs = [
         'repo', 'create', repoName,
         '--template', `${templateOwner}/${templateRepo}`,
         '--public',
         '--clone'
-      ]);
+      ];
+      
+      log.info('Executing gh repo create command', {
+        command: 'gh',
+        args: createArgs,
+        fullCommand: `gh ${createArgs.join(' ')}`
+      });
+
+      // Create repository from template
+      const createResult = await this.execGh(createArgs);
+      
+      log.info('gh repo create command completed', {
+        stdout: createResult.stdout,
+        stderr: createResult.stderr,
+        exitCode: createResult.exitCode
+      });
 
       // Get the created repository URL
-      const { stdout } = await this.execGh(['repo', 'view', repoName, '--json', 'url']);
+      log.info('Fetching created repository URL', { repoName });
+      
+      const viewArgs = ['repo', 'view', repoName, '--json', 'url'];
+      log.info('Executing gh repo view command', {
+        command: 'gh',
+        args: viewArgs,
+        fullCommand: `gh ${viewArgs.join(' ')}`
+      });
+      
+      const { stdout } = await this.execGh(viewArgs);
+      
+      log.info('gh repo view command completed', {
+        stdout,
+        rawLength: stdout.length
+      });
+      
       const repoData = JSON.parse(stdout);
+      
+      log.info('Successfully created repository', {
+        repoName,
+        url: repoData.url
+      });
       
       return repoData.url;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      log.error('Repository creation failed', {
+        repoName,
+        templateOwner,
+        templateRepo,
+        error: errorMessage,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        stdout: (error as any)?.stdout,
+        stderr: (error as any)?.stderr,
+        exitCode: (error as any)?.exitCode,
+        command: (error as any)?.command,
+        shortMessage: (error as any)?.shortMessage,
+        failed: (error as any)?.failed,
+        timedOut: (error as any)?.timedOut,
+        isCanceled: (error as any)?.isCanceled,
+        killed: (error as any)?.killed,
+        signal: (error as any)?.signal,
+        originalMessage: (error as any)?.originalMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+
       throw new Error(`Failed to create repository: ${errorMessage}`);
     }
   }
@@ -291,7 +405,7 @@ export class GitHubService {
     try {
       const { stdout } = await this.execGh([
         'repo', 'view', repoName,
-        '--json', 'url,sshUrl,httpUrl'
+        '--json', 'url,sshUrl'
       ]);
       
       const repoData = JSON.parse(stdout);
@@ -316,7 +430,7 @@ export class GitHubService {
 
       return {
         url: repoData.url,
-        cloneUrl: repoData.sshUrl || repoData.httpUrl,
+        cloneUrl: repoData.sshUrl || repoData.url, // Fallback to url if sshUrl not available
         pagesUrl,
       };
     } catch (error) {
@@ -375,11 +489,17 @@ export class GitHubService {
     try {
       const { stdout } = await this.execGh([
         'repo', 'view', repoName,
-        '--json', useSSH ? 'sshUrl' : 'httpUrl'
+        '--json', useSSH ? 'sshUrl' : 'url'
       ]);
       
       const repoData = JSON.parse(stdout);
-      return useSSH ? repoData.sshUrl : repoData.httpUrl;
+      if (useSSH) {
+        return repoData.sshUrl;
+      } else {
+        // Convert HTTPS URL to clone URL format
+        const repoUrl = repoData.url;
+        return repoUrl + '.git';
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to get clone URL: ${errorMessage}`);

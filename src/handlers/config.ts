@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
 import { GitService } from '../services/git.js';
 import { ArtifactService } from '../services/artifacts.js';
 import { log } from '../utils/logger.js';
@@ -148,11 +149,16 @@ export async function getConfig(): Promise<UpdateConfigResult> {
  * Find the local TOYBOX repository
  */
 async function findToyboxRepository(): Promise<string | null> {
+  const toyboxDir = path.join(os.homedir(), '.toybox');
+  
+  // First check for any repositories in ~/.toybox
   const commonPaths = [
+    path.join(toyboxDir, 'toybox'),
+    path.join(toyboxDir, 'TOYBOX'),
+    ...getDirectoriesInToybox(toyboxDir),
+    // Legacy paths for backward compatibility
     path.join(os.homedir(), 'toybox'),
     path.join(os.homedir(), 'TOYBOX'),
-    path.join(process.cwd(), 'toybox'),
-    path.join(process.cwd()),
   ];
 
   for (const repoPath of commonPaths) {
@@ -173,4 +179,24 @@ async function findToyboxRepository(): Promise<string | null> {
   }
 
   return null;
+}
+
+/**
+ * Get all directories in ~/.toybox
+ */
+function getDirectoriesInToybox(toyboxDir: string): string[] {
+  try {
+    if (!fs.existsSync(toyboxDir)) {
+      return [];
+    }
+    
+    return fs.readdirSync(toyboxDir)
+      .filter((file: string) => {
+        const filePath = path.join(toyboxDir, file);
+        return fs.statSync(filePath).isDirectory();
+      })
+      .map((dir: string) => path.join(toyboxDir, dir));
+  } catch {
+    return [];
+  }
 }

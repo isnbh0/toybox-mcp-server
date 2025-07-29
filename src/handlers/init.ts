@@ -50,7 +50,7 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
         currentUser = await githubService.getCurrentUser();
         log.info('Got current GitHub user', { currentUser });
       } catch (error) {
-        log.error('Failed to get current user, falling back to auth status user', { 
+        log.error('Failed to get current user, falling back to auth status user', {
           error: error instanceof Error ? error.message : String(error),
           authStatusUser: authStatus.user 
         });
@@ -72,8 +72,9 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
       }
     }
 
-    // Step 3: Set up local repository path
-    const localPath = path.join(os.homedir(), repoName);
+    // Step 3: Set up local repository path in ~/.toybox
+    const toyboxDir = path.join(os.homedir(), '.toybox');
+    const localPath = path.join(toyboxDir, repoName);
     const gitService = new GitService(localPath);
     
     let repoUrl: string;
@@ -102,17 +103,48 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
       
     } else {
       // Full GitHub integration mode: Create from GitHub template
-      log.info('Creating repository from TOYBOX template', { templateOwner, templateRepo });
-      repoUrl = await githubService.createRepository(repoName, templateOwner, templateRepo);
+      log.info('Creating repository from TOYBOX template', { 
+        templateOwner, 
+        templateRepo,
+        repoName,
+        currentUser,
+        templatePath: `${templateOwner}/${templateRepo}`
+      });
+      
+      try {
+        repoUrl = await githubService.createRepository(repoName, templateOwner, templateRepo);
+        log.info('Repository creation succeeded', { repoUrl });
+      } catch (createError) {
+        log.error('Repository creation failed in init handler', {
+          error: createError instanceof Error ? createError.message : String(createError),
+          stack: createError instanceof Error ? createError.stack : undefined,
+          repoName,
+          templateOwner,
+          templateRepo
+        });
+        throw createError;
+      }
       
       // Get repository information
+      log.info('Getting repository information', { repoName });
       const repoInfo = await githubService.getRepositoryInfo(repoName);
+      log.info('Repository info retrieved', { repoInfo });
       cloneUrl = repoInfo.cloneUrl;
       
-      // Clone repository locally (gh repo create with --clone should have done this)
-      log.info('Setting up local repository');
+      // Clone repository locally
+      // gh repo create --clone will have cloned it to ~/.toybox/repoName
+      log.info('Checking for cloned repository', { localPath });
+      
+      // The repository should already be cloned by gh repo create --clone
       if (!await gitService.repositoryExists()) {
+        // If for some reason it wasn't cloned, clone it manually
+        log.info('Repository not found, cloning manually', { 
+          cloneUrl: repoInfo.cloneUrl, 
+          localPath 
+        });
         await gitService.cloneRepository(repoInfo.cloneUrl, localPath);
+      } else {
+        log.info('Repository already exists at target location');
       }
       
       // Get current user for GitHub integration mode
