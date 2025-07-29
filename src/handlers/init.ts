@@ -220,7 +220,7 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
         log.error('Template customization failed', { error });
         log.warn('Continuing with uncustomized template - manual configuration required');
       }
-      
+
       // Set URLs for local mode
       repoUrl = `file://${localPath}`;
       pagesUrl = debug ? `http://localhost:5173/` : '';
@@ -311,23 +311,6 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
         log.info('Adding remote to local repository...', { cloneUrl });
         await gitService.addRemote('origin', cloneUrl);
         
-        // Add all files and make initial commit on main branch
-        await gitService.addFiles(['.']);
-        
-        // Create main branch as the first branch
-        log.info('Creating main branch...');
-        await gitService.createBranch('main');
-        
-        // Make initial commit
-        log.info('Making initial commit...');
-        const commitHash = await gitService.commit('feat: Initial TOYBOX setup');
-        log.info('Initial commit created successfully', { commitHash });
-        
-        // Push to remote with --set-upstream
-        log.info('Pushing to GitHub remote...');
-        await gitService.push('origin', 'main', true);
-        log.info('Successfully pushed to GitHub remote');
-        
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         log.error('Failed to set up GitHub remote', { 
@@ -353,13 +336,52 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
       const artifactService = new ArtifactService(localPath);
       await artifactService.updateConfig(config);
 
-      // Commit the configuration changes
-      await gitService.addFiles(['TOYBOX_CONFIG.json']);
-      await gitService.commit('feat: Update TOYBOX configuration');
+      log.info('Configuration changes will be included in the final commit');
+    }
+
+    // Step 6: Commit and push all customizations if we have a GitHub remote
+    if (needsGitHubRemote && repoUrl && repoUrl !== `file://${localPath}`) {
+      log.info('Committing and pushing customized template to GitHub');
       
-      // Push if we have a remote
-      if (needsGitHubRemote && repoUrl && repoUrl !== `file://${localPath}`) {
-        await gitService.push();
+      try {
+        // Add all files (including customized configurations)
+        await gitService.addFiles(['.']);
+        log.info('Added all files to git staging area');
+        
+        // Create main branch as the first branch
+        log.info('Creating main branch...');
+        await gitService.createBranch('main');
+        
+        // Make initial commit with customized template
+        let commitMessage = 'feat: Initial TOYBOX setup with customized configuration';
+        if (config) {
+          commitMessage += '\n\n- Customized github.config.json with user settings\n- Updated TOYBOX_CONFIG.json with user preferences';
+        } else {
+          commitMessage += '\n\n- Customized github.config.json with user settings';
+        }
+        
+        log.info('Making initial commit with customized template...');
+        const commitHash = await gitService.commit(commitMessage);
+        log.info('Initial commit created successfully', { commitHash });
+        
+        // Push to remote with --set-upstream
+        log.info('Pushing customized template to GitHub remote...');
+        await gitService.push('origin', 'main', true);
+        log.info('Successfully pushed customized template to GitHub remote');
+        
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log.error('Failed to commit and push customized template', { 
+          error: errorMessage,
+          repoName 
+        });
+        
+        // This is a critical failure - we want the remote to have the customized template
+        return {
+          success: false,
+          repository: {} as ToyboxRepository,
+          error: `Failed to push customized template to GitHub: ${errorMessage}. Local repository was created at ${localPath} but customized changes were not pushed to remote.`,
+        };
       }
     }
 
