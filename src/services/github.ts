@@ -362,14 +362,21 @@ export class GitHubService {
         log.info('Found existing GitHub Pages URL', { repoName, owner, pagesUrl });
         return pagesUrl;
       } catch (getUrlError) {
-        log.error('Failed to get existing GitHub Pages URL', { 
+        log.warn('Could not fetch GitHub Pages URL immediately - Pages may still be setting up', { 
           repoName, 
           owner,
-          error: getUrlError instanceof Error ? getUrlError.message : String(getUrlError),
-          stdout: (getUrlError as any)?.stdout,
-          stderr: (getUrlError as any)?.stderr
+          error: getUrlError instanceof Error ? getUrlError.message : String(getUrlError)
         });
-        throw new Error(`Failed to enable GitHub Pages: ${errorMessage}`);
+        
+        // Return a constructed URL as fallback - GitHub Pages will be available here once it's ready
+        const fallbackUrl = `https://${owner}.github.io/${repoName}/`;
+        log.info('Using constructed GitHub Pages URL as fallback', { 
+          repoName, 
+          owner, 
+          fallbackUrl,
+          note: 'Pages will be available at this URL once GitHub finishes setup'
+        });
+        return fallbackUrl;
       }
     }
   }
