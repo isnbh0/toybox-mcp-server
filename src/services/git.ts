@@ -284,4 +284,22 @@ export class GitService {
   async repositoryExists(): Promise<boolean> {
     return await fs.pathExists(this.repoPath);
   }
+
+  /**
+   * Run arbitrary command in repository directory
+   */
+  async runCommand(
+    command: string, 
+    args: string[], 
+    options: { cwd?: string } = {}
+  ): Promise<string> {
+    const workingDir = options.cwd || this.repoPath;
+    
+    const result = await execa(command, args, {
+      cwd: workingDir,
+      stdio: 'pipe'
+    });
+    
+    return result.stdout;
+  }
 }

@@ -1,11 +1,106 @@
 import * as path from 'path';
 import * as os from 'os';
+import { promises as fs } from 'fs';
 import { GitHubService } from '../services/github.js';
 import { GitService } from '../services/git.js';
 import { ArtifactService } from '../services/artifacts.js';
 import { ConfigService } from '../services/config.js';
 import { log } from '../utils/logger.js';
 import type { InitializeToyboxParams, InitResult, ToyboxRepository } from '../types.js';
+
+/**
+ * Customize template with user-specific information
+ */
+async function customizeTemplate(
+  localPath: string, 
+  username: string, 
+  repoName: string,
+  gitService: GitService
+): Promise<void> {
+  log.info('Customizing template for user', { username, repoName, localPath });
+  
+  // 1. Create github.config.json with actual values
+  const githubConfigPath = path.join(localPath, 'github.config.json');
+  const githubConfig = {
+    username,
+    repository: repoName,
+    description: `Configuration for ${username}'s TOYBOX deployment`
+  };
+  
+  await fs.writeFile(githubConfigPath, JSON.stringify(githubConfig, null, 2) + '\n');
+  log.info('Created github.config.json', { githubConfig });
+  
+  // 2. Install npm dependencies (required for update script)
+  log.info('Installing npm dependencies for template configuration...');
+  await gitService.runCommand('npm', ['install'], { cwd: localPath });
+  
+  // 3. Run the template's update-config script
+  log.info('Running template update-config script...');
+  await gitService.runCommand('npm', ['run', 'update-config'], { cwd: localPath });
+  
+  // 4. Personalize TOYBOX_CONFIG.json
+  const toyboxConfigPath = path.join(localPath, 'TOYBOX_CONFIG.json');
+  const toyboxConfig = {
+    title: `${username}'s TOYBOX`,
+    description: `A collection of ${username}'s Claude-generated artifacts`,
+    theme: "auto",
+    layout: "grid",
+    showFooter: true
+  };
+  
+  await fs.writeFile(toyboxConfigPath, JSON.stringify(toyboxConfig, null, 2) + '\n');
+  log.info('Updated TOYBOX_CONFIG.json with personalization', { toyboxConfig });
+  
+  // 5. Clean up template-specific files
+  const filesToRemove = [
+    path.join(localPath, 'TEMPLATE_README.md'),
+    path.join(localPath, 'github.config.json.example')
+  ];
+  
+  for (const filePath of filesToRemove) {
+    try {
+      await fs.unlink(filePath);
+      log.info('Removed template file', { filePath });
+    } catch (error) {
+      log.warn('Failed to remove template file (may not exist)', { filePath, error });
+    }
+  }
+  
+  // 6. Update README.md with user-specific content
+  const readmePath = path.join(localPath, 'README.md');
+  const personalizedReadme = `# ${username}'s TOYBOX
+
+A collection of Claude-generated artifacts.
+
+## Getting Started
+
+\`\`\`bash
+npm install
+npm run dev
+\`\`\`
+
+## Deployment
+
+This site is deployed to GitHub Pages. To deploy:
+
+\`\`\`bash
+npm run deploy
+\`\`\`
+
+Visit your site at: https://${username}.github.io/${repoName}
+
+## About TOYBOX
+
+TOYBOX is a zero-friction publishing platform for Claude AI artifacts. Create artifacts in Claude Desktop and publish them instantly through conversational commands.
+
+Built with React, TypeScript, and Tailwind CSS. Deployed via GitHub Actions to GitHub Pages.
+`;
+  
+  await fs.writeFile(readmePath, personalizedReadme);
+  log.info('Updated README.md with personalized content');
+  
+  log.info('Template customization completed successfully');
+}
 
 /**
  * Initialize a new TOYBOX repository with GitHub Pages publishing
@@ -97,6 +192,14 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
       // Re-initialize to start fresh
       await gitService.initRepository();
       
+      // Customize template for user
+      try {
+        await customizeTemplate(localPath, currentUser, repoName, gitService);
+      } catch (error) {
+        log.error('Template customization failed', { error });
+        log.warn('Continuing with uncustomized template - manual configuration required');
+      }
+      
       // Set URLs for local mode
       repoUrl = `file://${localPath}`;
       pagesUrl = debug ? `http://localhost:5173/` : '';
@@ -149,6 +252,14 @@ export async function initializeToybox(params: InitializeToyboxParams): Promise<
       
       // Get current user for GitHub integration mode
       currentUser = await githubService.getCurrentUser();
+      
+      // Customize template for user
+      try {
+        await customizeTemplate(localPath, currentUser, repoName, gitService);
+      } catch (error) {
+        log.error('Template customization failed', { error });
+        log.warn('Continuing with uncustomized template - manual configuration required');
+      }
     }
 
     // Step 4: Configure git user
