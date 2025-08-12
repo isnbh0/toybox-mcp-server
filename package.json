@@ -1,6 +1,6 @@
 {
   "name": "@isnbh0/toybox-mcp-server",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "MCP server for TOYBOX - Zero-friction publishing platform for Claude artifacts",
   "keywords": [
     "mcp",
