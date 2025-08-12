@@ -272,11 +272,6 @@ export const metadata = {
       }
     }
     
-    // Check for required React import (if using JSX)
-    if (code.includes('<') && code.includes('>') && !code.includes('import React')) {
-      issues.push('React components should import React or use React namespace');
-    }
-    
     // Check for export default
     if (!code.includes('export default')) {
       issues.push('Artifact should export a default component');
